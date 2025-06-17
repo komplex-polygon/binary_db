@@ -1,4 +1,4 @@
-![logo](https://github.com/user-attachments/assets/af7d7d23-03d5-4e56-9373-0b4a6cc1c763)
+![logo](https://github.com/user-attachments/assets/02259fd1-257c-4606-9903-7a18ed758c9f)
 
 I am writing a small database application / library that does binary tree search and query.
 
