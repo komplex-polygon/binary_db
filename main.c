@@ -12,10 +12,22 @@ typedef struct {
   unsigned char de; // deapth of the check. example: 0 for the first and 2 for
                     // the third bool.
   unsigned int hi;
+  unsigned int e1; // 0 = to rederect, 1 = end user.
+  unsigned int e0;
+  unsigned char ac;
+} u_int_bin;
+
+typedef struct {
+  unsigned int
+      a0; // 0 = NULL, the id has a +1 offcet so 0 is not a valid number.
+  unsigned int a1;  // to get the real id you need to subtract by 1 (-1).
+  unsigned char de; // deapth of the check. example: 0 for the first and 2 for
+                    // the third bool.
+  unsigned char hi[32];
   unsigned char e1; // 0 = to rederect, 1 = end user.
   unsigned char e0;
   unsigned char ac;
-} bin;
+} char_bin;
 
 typedef struct {
   unsigned int id;
@@ -23,14 +35,75 @@ typedef struct {
   unsigned char ac;
 } user;
 
-bin *bins = NULL;
-user *users = NULL;
+typedef struct {
+  user *bin;
+  unsigned int len;
+} user_db;
 
-unsigned int bin_len = 1024;
-unsigned int user_len = 1024;
+typedef struct {
+  u_int_bin *bin;
+  unsigned int len;
+  unsigned int s;// = 0;
+  unsigned int e;// = 0;
+} u_int_index;
 
-unsigned int s_bin = 0;
-unsigned char e_bin = 0;
+typedef struct {
+  char_bin *bin;
+  unsigned int len;
+  unsigned int s;// = 0;
+  unsigned int e;// = 0;
+} char_index;
+
+
+
+//bin *bins = NULL;
+//user *users = NULL;
+
+//unsigned int bin_len = 1024;
+//unsigned int user_len = 1024;
+
+//unsigned int s_bin = 0;
+//unsigned char e_bin = 0;
+
+unsigned int new_user(user_db *b){
+  
+  unsigned int user_id = 0;
+
+  for (unsigned int find_space = 0; find_space < b -> len; find_space++) {
+    if(b -> bin[find_space].ac == 0) {
+      //printf("found empty space at [%u] + 1\n", find_space);
+      b -> bin[find_space].ac = 1;
+      //users[find_space].id = ids;
+      //strncpy(users[find_space].un, us, sizeof(users[find_space].un) - 1);
+      //snprintf(users[find_space].un, sizeof(users[find_space].un), "%s", us);
+      //users[find_space].un[sizeof(users[find_space].un) - 1] = '\0';
+      user_id = find_space + 1;
+      break;
+    }
+  }  
+
+
+  if(user_id >= b -> len - 3){
+    //printf("hit user limit. (adding 1024 users to data base.)\n");
+    b -> len += 1024;
+    //printf("users %u\n",user_len);
+
+    user *temp = realloc(b -> bin,b -> len * sizeof(user));
+
+    if(!temp){
+      printf("Error: out of memory.\n");
+      //free(bins);
+      //free(users);
+      exit(0);
+    }
+    else{
+      b -> bin = temp;
+    }
+
+  }
+
+  return user_id;
+}
 
 int get_bit(unsigned int value, unsigned int position) {
   // Calculate the total number of bits in an unsigned int
@@ -54,7 +127,30 @@ unsigned int generate_random_uint(void) {
   return result;
 }
 
-int log_value() {
+
+user_db new_db() {
+  user_db temp = {0};
+  temp.len = 1024;
+  temp.bin = malloc(sizeof(user) * 1024); 
+  return temp;
+}
+
+u_int_index new_u_int_index_db() {
+  u_int_index temp = {0};
+  temp.len = 1024;
+  temp.bin = malloc(sizeof(u_int_bin) * 1024); 
+  return temp;
+}
+
+char_index new_char_index_db() {
+  char_index temp = {0};
+  temp.len = 1024;
+  temp.bin = malloc(sizeof(char_bin) * 1024); 
+  return temp;
+}
+
+
+/*int log_value() {
 
   printf("[~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]\n");
   printf("  s_bin = %u, e_bin = %d\n", s_bin - 1, (int)e_bin);
@@ -83,7 +179,7 @@ int log_value() {
   printf("[~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]\n\n\n");
 
   return 1;
-}
+}*/
 
 typedef struct {
   unsigned char point;
@@ -120,39 +216,39 @@ diffs diff(unsigned int a, unsigned int b, unsigned char len) {
   return jj;
 }
 
-unsigned int query(unsigned int id) {
-  if (e_bin == 1) {
-    if (users[s_bin - 1].id == id) {
-      return s_bin;
+unsigned int query_u_int_index(u_int_index a,unsigned int id) {
+  if (a.e != 0) {
+    if (a.e == id) {
+      return a.s;
     } else {
       printf("Error: did not find the requested id in database.\n");
       return 0;
     }
   }
 
-  unsigned int pointe = s_bin;
+  unsigned int pointe = a.s;
 
   for (unsigned char lloo = 0; lloo < 255; lloo++) {
 
-    if (get_bit(id, bins[pointe - 1].de) == 1) {
-      if (bins[pointe - 1].e1 == 0) {
-        pointe = bins[pointe - 1].a1;
+    if (get_bit(id, a.bin[pointe - 1].de) == 1) {
+      if (a.bin[pointe - 1].e1 == 0) {
+        pointe = a.bin[pointe - 1].a1;
       } else {
-        if (users[bins[pointe - 1].a1 - 1].id == id) {
+        if (a.bin[pointe - 1].e1 == id) {
 	  printf("[%d] :3\n",(int)lloo);
-          return bins[pointe - 1].a1;
+          return a.bin[pointe - 1].a1;
         } else {
           printf("Error: did not find the requested id in database.\n");
           return 0;
         }
       }
     } else {
-      if (bins[pointe - 1].e0 == 0) {
-        pointe = bins[pointe - 1].a0;
+      if (a.bin[pointe - 1].e0 == 0) {
+        pointe = a.bin[pointe - 1].a0;
       } else {
-        if (users[bins[pointe - 1].a0 - 1].id == id) {
+        if (a.bin[pointe - 1].e0 == id) {
 	  printf("[%d]\n",(int)lloo);
-          return bins[pointe - 1].a0;
+          return a.bin[pointe - 1].a0;
         } else {
           printf("Error: did not find the requested id in database.\n");
           return 0;
@@ -164,17 +260,17 @@ unsigned int query(unsigned int id) {
   return 0;
 }
 
-unsigned int del_user(unsigned int id) {
-  if (e_bin == 1) {
+unsigned int del_u_int_index(u_int_index *a,unsigned int id) {
+  if (a -> e != 0) {
     //printf("monkey\n");
-    if (users[s_bin - 1].id == id) {
+    if (a -> e == id) {
       //return s_bin;
       //
       //
-      users[s_bin - 1].ac = 0;
+      //b -> bin[a -> s - 1].ac = 0;
 
-      s_bin = 0;
-      e_bin = 0;
+      a -> s = 0;
+      a -> e = 0;
 
       
 
@@ -186,48 +282,48 @@ unsigned int del_user(unsigned int id) {
     }
   }
 
-  unsigned int pointe = s_bin;
+  unsigned int pointe = a -> s;
   unsigned int histor = 0;
   unsigned char way = 0; //0 is 0 and 1 is 1, oviusly :(
 
-  if(users[bins[pointe - 1].a1 - 1].id == id && bins[pointe - 1].e1 == 1){
-    s_bin = bins[pointe - 1].a0;
-    e_bin = bins[pointe - 1].e0;
-    bins[pointe - 1].ac = 0;
-    users[bins[pointe - 1].a1 - 1].ac = 0;
+  if(a -> bin[pointe - 1].e1 == id){
+    a -> s = a -> bin[pointe - 1].a0;
+    a -> e = a -> bin[pointe - 1].e0;
+    a -> bin[pointe - 1].ac = 0;
+    //b -> bin[a -> bin[pointe - 1].a1 - 1].ac = 0;
     return 1;
   }
 
-  if(users[bins[pointe - 1].a0 - 1].id == id && bins[pointe - 1].e0 == 1){
-    s_bin = bins[pointe - 1].a1;
-    e_bin = bins[pointe - 1].e1;
-    bins[pointe - 1].ac = 0;
-    users[bins[pointe - 1].a0 - 1].ac = 0;
+  if(a -> bin[pointe - 1].e0 == id){
+    a -> s = a -> bin[pointe - 1].a1;
+    a -> e = a -> bin[pointe - 1].e1;
+    a -> bin[pointe - 1].ac = 0;
+    //b -> bin[a -> bin[pointe - 1].a0 - 1].ac = 0;
     return 1;
   }
 
 
   for (unsigned char lloo = 0; lloo < 255; lloo++) {
 
-    if (get_bit(id, bins[pointe - 1].de) == 1) {
-      if (bins[pointe - 1].e1 == 0) {
+    if (get_bit(id, a -> bin[pointe - 1].de) == 1) {
+      if (a -> bin[pointe - 1].e1 == 0) {
 	histor = pointe;
 	way = 1;
-        pointe = bins[pointe - 1].a1;
+        pointe = a -> bin[pointe - 1].a1;
       } else {
-        if (users[bins[pointe - 1].a1 - 1].id == id) {
+        if (a -> bin[pointe - 1].e1 == id) {
 	  //printf("[%d] :3\n",(int)lloo);
-          users[bins[pointe - 1].a1 - 1].ac = 0;
-	  bins[pointe - 1].ac = 0;
+          //b -> bin[a -> bin[pointe - 1].a1 - 1].ac = 0;
+	  a -> bin[pointe - 1].ac = 0;
 
 	  if(way == 1){
-	    bins[histor - 1].a1 = bins[pointe - 1].a0;
-	    bins[histor - 1].e1 = bins[pointe - 1].e0;
+	    a -> bin[histor - 1].a1 = a -> bin[pointe - 1].a0;
+	    a -> bin[histor - 1].e1 = a -> bin[pointe - 1].e0;
  
 	  }
 	  else{
-	    bins[histor - 1].a0 = bins[pointe - 1].a0;
-	    bins[histor - 1].e0 = bins[pointe - 1].e0;
+	    a -> bin[histor - 1].a0 = a -> bin[pointe - 1].a0;
+	    a -> bin[histor - 1].e0 = a -> bin[pointe - 1].e0;
 
 	  }
 
@@ -241,26 +337,26 @@ unsigned int del_user(unsigned int id) {
       }
 
     } else {
-      if (bins[pointe - 1].e0 == 0) {
+      if (a -> bin[pointe - 1].e0 == 0) {
 	histor = pointe;
 	way = 0;
-        pointe = bins[pointe - 1].a0;
+        pointe = a -> bin[pointe - 1].a0;
       } else {
-        if (users[bins[pointe - 1].a0 - 1].id == id) {
+        if (a -> bin[pointe - 1].e0 == id) {
 	  //printf("[%d]\n",(int)lloo);
           //return bins[pointe - 1].a0;
 	  //
 	  //
-	  users[bins[pointe - 1].a0 - 1].ac = 0;
-	  bins[pointe - 1].ac = 0;
+	  //b -> bin[a -> bin[pointe - 1].a0 - 1].ac = 0;
+	  a -> bin[pointe - 1].ac = 0;
 
 	  if(way == 1){
-	    bins[histor - 1].a1 = bins[pointe - 1].a1;
-	    bins[histor - 1].e1 = bins[pointe - 1].e1;
+	    a -> bin[histor - 1].a1 = a -> bin[pointe - 1].a1;
+	    a -> bin[histor - 1].e1 = a -> bin[pointe - 1].e1;
 	  }
 	  else{
-	    bins[histor - 1].a0 = bins[pointe - 1].a1;
-	    bins[histor - 1].e0 = bins[pointe - 1].e1;
+	    a -> bin[histor - 1].a0 = a -> bin[pointe - 1].a1;
+	    a -> bin[histor - 1].e0 = a -> bin[pointe - 1].e1;
 	  }
 
 	  return 1;	  
@@ -279,9 +375,9 @@ unsigned int del_user(unsigned int id) {
   return 0;
 }
 
-unsigned int new_user(char *us) {
+unsigned int new_u_int_index(u_int_index *a,unsigned int id,unsigned int path) {
 
-  unsigned int ids = 0;
+  /*unsigned int ids = 0;
   unsigned char found_id = 0;
 
   for (unsigned char trys = 0; trys < 255; trys++) {
@@ -318,10 +414,10 @@ unsigned int new_user(char *us) {
   unsigned int user_id = 0;
 
   for (unsigned int find_space = 0; find_space < user_len; find_space++) {
-    if (users[find_space].ac == 0) {
+    if(users[find_space].ac == 0) {
       //printf("found empty space at [%u] + 1\n", find_space);
       users[find_space].ac = 1;
-      users[find_space].id = ids;
+      users[find_space].id = ids;§§
       strncpy(users[find_space].un, us, sizeof(users[find_space].un) - 1);
       //snprintf(users[find_space].un, sizeof(users[find_space].un), "%s", us);
       users[find_space].un[sizeof(users[find_space].un) - 1] = '\0';
@@ -330,10 +426,14 @@ unsigned int new_user(char *us) {
     }
   }
 
-  if (user_id == 0) {
-    printf("Error: did not find free space for a new user.\n");
+  */
+
+  if (path == 0) {
+    printf("Error: invalid path.\n");
     return 0;
   }
+
+  /*
 
   if(user_id >= user_len - 1024){
     //printf("hit user limit. (adding 1024 users to data base.)\n");
@@ -354,22 +454,25 @@ unsigned int new_user(char *us) {
 
   }
 
+  */
+
   // to handel if it is the first one to get added in the database.
-  if (s_bin == 0) {
-    s_bin = user_id;
-    e_bin = 1;
-    return ids;
+  if (a -> s == 0) {
+    a -> s = path;
+    a -> e = id;
+    return 1;
   }
 
   unsigned int temp;
+  unsigned int temp_e;
   unsigned int temp_swich;
   unsigned int curser = 0;
   //unsigned char deapth = 0;
 
-  for (unsigned int find_swich = 0; find_swich < bin_len; find_swich++) {
-    if (bins[find_swich].ac == 0) {
+  for (unsigned int find_swich = 0; find_swich < a -> len; find_swich++) {
+    if (a -> bin[find_swich].ac == 0) {
       temp_swich = find_swich + 1;
-      bins[find_swich].ac = 1;
+      a -> bin[find_swich].ac = 1;
 
       break;
     }
@@ -380,22 +483,22 @@ unsigned int new_user(char *us) {
     return 0;
   }
 
-  if(temp_swich >= bin_len - 1024){
+  if(temp_swich >= a -> len - 3){
     //printf("hit bin limit. (adding 1024 bins to data base.)\n");
-    bin_len += 1024;
+    a -> len += 1024;
     //printf("bins %u\n",bin_len);
    
 
-    bin *temp = realloc(bins,bin_len * sizeof(bin));
+    u_int_bin *temp = realloc(a -> bin,a -> len * sizeof(u_int_bin));
 
     if(!temp){
       printf("Error: out of memory.\n");
-      free(bins);
-      free(users);
+      //free(a.bin);
+      //free(b.bin);
       exit(0);
     }
     else{
-      bins = temp;
+      a -> bin = temp;
     }
 
 
@@ -418,9 +521,9 @@ unsigned int new_user(char *us) {
 
   */
 
-  if (e_bin == 1) {
+  if (a -> e != 0) {
 
-    diffs ll = diff(users[s_bin - 1].id, ids, 32);
+    diffs ll = diff(a -> e/*b.bin[a -> s - 1].id*/, id, 32);
 
     if (ll.point == 0) {
       printf("Error: somthing went wrong when mathing int's.\n");
@@ -428,32 +531,37 @@ unsigned int new_user(char *us) {
     }
 
     // deapth = point - 1;
-    temp = s_bin;
+    temp = a -> s;
+    temp_e = a -> e;
 
-    s_bin = temp_swich;
-    e_bin = 0;
+    a -> s = temp_swich;
+    a -> e = 0;
 
-    bins[s_bin - 1].de = ll.point - 1;
-    bins[s_bin - 1].hi = ll.hist;
+    a -> bin[a -> s - 1].de = ll.point - 1;
+    a -> bin[a -> s - 1].hi = ll.hist;
 
-    if (get_bit(users[temp - 1].id, ll.point - 1) == 1) {
-      bins[s_bin - 1].a1 = temp;
-      bins[s_bin - 1].a0 = user_id;
+    if (get_bit(temp_e, ll.point - 1) == 1) {
+      a -> bin[a -> s - 1].a1 = temp;
+      a -> bin[a -> s - 1].e1 = temp_e;
+      a -> bin[a -> s - 1].a0 = path;
+      a -> bin[a -> s - 1].e0 = id;
     } else {
-      bins[s_bin - 1].a0 = temp;
-      bins[s_bin - 1].a1 = user_id;
+      a -> bin[a -> s - 1].a0 = temp;
+      a -> bin[a -> s - 1].e0 = temp_e;
+      a -> bin[a -> s - 1].a1 = path;
+      a -> bin[a -> s - 1].e1 = id;
     }
 
-    bins[s_bin - 1].e0 = 1;
-    bins[s_bin - 1].e1 = 1;
+    //a -> bin[a -> s - 1].e0 = 1;
+    //a -> bin[a -> s - 1].e1 = 1;
 
   } else { // 3th time and forword.
 
-    if (bins[s_bin - 1].de != 0) {
+    if (a -> bin[a -> s - 1].de != 0) {
 
       // for(unsigned char tryg = 0;tryg < 255;tryg++){
       //
-      diffs ll = diff(bins[s_bin - 1].hi, ids, bins[s_bin - 1].de - 1);
+      diffs ll = diff(a -> bin[a -> s - 1].hi, id, a -> bin[a -> s - 1].de - 1);
 
       if (ll.point != 0) {
 
@@ -464,35 +572,38 @@ unsigned int new_user(char *us) {
         //
         //
         //
-        temp = s_bin;
+        temp = a -> s;
+	temp_e = a -> e;
 
-        s_bin = temp_swich;
+        a -> s = temp_swich;
 
-        bins[s_bin - 1].de = ll.point - 1;
-        bins[s_bin - 1].hi = ll.hist;
+        a -> bin[a -> s - 1].de = ll.point - 1;
+        a -> bin[a -> s - 1].hi = ll.hist;
 
-        if (get_bit(bins[temp - 1].hi, ll.point - 1) == 1) {
-          bins[s_bin - 1].a1 = temp;
-          bins[s_bin - 1].a0 = user_id;
-          bins[s_bin - 1].e0 = 1;
+        if (get_bit(a -> bin[temp - 1].hi, ll.point - 1) == 1) {
+          a -> bin[a -> s - 1].a1 = temp;
+          a -> bin[a -> s - 1].a0 = path;
+          a -> bin[a -> s - 1].e0 = id;
+	  a -> bin[a -> s - 1].e1 = temp_e;
         } else {
-          bins[s_bin - 1].a0 = temp;
-          bins[s_bin - 1].a1 = user_id;
-          bins[s_bin - 1].e1 = 1;
+          a -> bin[a -> s - 1].a0 = temp;
+          a -> bin[a -> s - 1].a1 = path;
+          a -> bin[a -> s - 1].e1 = id;
+	  a -> bin[a -> s - 1].e0 = temp_e;
         }
 
-        return ids;
+        return 1;
 
       } else {
 
-        curser = s_bin; // not optimal to have multible parts that does the same
+        curser = a -> s; // not optimal to have multible parts that does the same
                         // thing.
       }
       //}
 
     } else {
 
-      curser = s_bin;
+      curser = a -> s;
     }
 
     //printf("my cur %u\n", curser - 1);
@@ -502,27 +613,27 @@ unsigned int new_user(char *us) {
 
     for (unsigned char tryg = 0; tryg < 255; tryg++) {
 
-      unsigned char *type; // = 0;
+      unsigned int *type; // = 0;
       unsigned int *sel;   //= 0;
 
-      if (get_bit(ids, bins[curser - 1].de) == 1) {
-        type = &bins[curser - 1].e1;
-        sel = &bins[curser - 1].a1;
+      if (get_bit(id, a -> bin[curser - 1].de) == 1) {
+        type = &a -> bin[curser - 1].e1;
+        sel = &a -> bin[curser - 1].a1;
       } else {
-        type = &bins[curser - 1].e0;
-        sel = &bins[curser - 1].a0;
+        type = &a -> bin[curser - 1].e0;
+        sel = &a -> bin[curser - 1].a0;
       }
 
       if (*type == 0) {
-        diffs kk = diff(bins[*sel - 1].hi, ids,
-                        bins[*sel - 1].de - 1); // -1 is the problem.
+        diffs kk = diff(a -> bin[*sel - 1].hi, id,
+                        a -> bin[*sel - 1].de - 1); // -1 is the problem.
 
-        if (kk.point == 0 || bins[*sel - 1].de - bins[curser - 1].de <= 1) {
+        if (kk.point == 0 || a -> bin[*sel - 1].de - a -> bin[curser - 1].de <= 1) {
           //printf("walking the lader\n");
           curser = *sel;
           continue;
         }
-        if (kk.point != 0 && bins[*sel - 1].de - bins[curser - 1].de >= 2) {
+        if (kk.point != 0 && a -> bin[*sel - 1].de - a -> bin[curser - 1].de >= 2) {
 
           //printf("[branch]\n");
 
@@ -530,49 +641,53 @@ unsigned int new_user(char *us) {
 
           *sel = temp_swich;
 
-          bins[temp_swich - 1].de = kk.point - 1;
-          bins[temp_swich - 1].hi = kk.hist;
+          a -> bin[temp_swich - 1].de = kk.point - 1;
+          a -> bin[temp_swich - 1].hi = kk.hist;
 
-          if (get_bit(bins[temp - 1].hi, kk.point - 1) == 1) {
-            bins[temp_swich - 1].a1 = temp;
-            bins[temp_swich - 1].a0 = user_id;
-            bins[temp_swich - 1].e0 = 1;
+          if (get_bit(a -> bin[temp - 1].hi, kk.point - 1) == 1) {
+            a -> bin[temp_swich - 1].a1 = temp;
+            a -> bin[temp_swich - 1].a0 = path;
+            a -> bin[temp_swich - 1].e0 = id;
           } else {
-            bins[temp_swich - 1].a0 = temp;
-            bins[temp_swich - 1].a1 = user_id;
-            bins[temp_swich - 1].e1 = 1;
+            a -> bin[temp_swich - 1].a0 = temp;
+            a -> bin[temp_swich - 1].a1 = path;
+            a -> bin[temp_swich - 1].e1 = id;
           }
 
-          return ids;
+          return 1;
         }
 
       } else {
 
         //printf("[split]\n");
 
-        diffs gay = diff(users[*sel - 1].id, ids,
+        diffs gay = diff(*type, id,
                          32); // problem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         temp = *sel;
+	temp_e = *type;
 
         *sel = temp_swich;
         *type = 0;
 
-        bins[temp_swich - 1].de = gay.point - 1;
-        bins[temp_swich - 1].hi = gay.hist;
+        a -> bin[temp_swich - 1].de = gay.point - 1;
+        a -> bin[temp_swich - 1].hi = gay.hist;
 
-        if (get_bit(users[temp - 1].id, gay.point - 1) == 1) {
-          bins[temp_swich - 1].a1 = temp;
-          bins[temp_swich - 1].a0 = user_id;
+        if (get_bit(temp_e, gay.point - 1) == 1) {
+          a -> bin[temp_swich - 1].a1 = temp;
+          a -> bin[temp_swich - 1].a0 = path;
+	  a -> bin[temp_swich - 1].e0 = id;
+	  a -> bin[temp_swich - 1].e1 = temp_e;
         } else {
-          bins[temp_swich - 1].a0 = temp;
-          bins[temp_swich - 1].a1 = user_id;
+          a -> bin[temp_swich - 1].a0 = temp;
+          a -> bin[temp_swich - 1].a1 = path;
+	  a -> bin[temp_swich - 1].e1 = id;
+	  a -> bin[temp_swich - 1].e0 = temp_e;
         }
 
-        bins[temp_swich - 1].e0 = 1;
-        bins[temp_swich - 1].e1 = 1;
+        
 
-        return ids;
+        return 1;
       }
     }
     /*
@@ -621,13 +736,13 @@ unsigned int new_user(char *us) {
   */
   }
 
-  return ids;
+  return 0;
 }
 
 int main() {
   srand(time(NULL));
-  bins = malloc(sizeof(bin) * bin_len);
-  users = malloc(sizeof(user) * user_len);
+  //bins = malloc(sizeof(bin) * bin_len);
+  //users = malloc(sizeof(user) * user_len);
 
   // unsigned int number = 1;  // Binary: 1101 (LSB: 1, bit0)
 
@@ -654,21 +769,21 @@ int main() {
   log_value();
   */
 
-  for(unsigned int yyu = 0;yyu < 64;yyu++){
+  /*for(unsigned int yyu = 0;yyu < 64;yyu++){
     new_user("a1");
-  }
+  }*/
 
   //log_value();
   //unsigned int test = new_user("femboy");
 
-  for(unsigned int yyu = 0;yyu < user_len;yyu++){
+  /*for(unsigned int yyu = 0;yyu < user_len;yyu++){
     if(users[yyu].ac == 1){
       log_value();
       del_user(users[yyu].id);
     }
   }
 
-  log_value();
+  log_value();*/
   /*log_value();
 
   new_user();
@@ -688,8 +803,31 @@ int main() {
 
   //printf("\n[%s]\n\n",users[test2].un);
 
-  free(bins);
-  free(users);
+  //free(bins);
+  //free(users);
+  //
+  //
+
+   user_db b = new_db();
+
+   u_int_index a = new_u_int_index_db();
+
+  for(unsigned int yyu = 0;yyu < 64;yyu++){
+    //new_user("a1");
+    unsigned int test = new_user(&b);
+    unsigned int id = yyu + 1; 
+    b.bin[test - 1].id = id;
+
+    strncpy(b.bin[test - 1].un, "Hello world.", sizeof(b.bin[test - 1].un) - 1);
+    b.bin[test - 1].un[sizeof(b.bin[test - 1].id) - 1] = '\0';
+    new_u_int_index(&a,id,test);
+  }
+    
+   unsigned int test = query_u_int_index(a,32);
+   printf("%u\n",test);
+
+    //new_u_int_index()
+
 
   // Check bits at positions 0, 1, 2, and 3
   // printf("Bit 0: %d\n", get_bit(number, 0)); // Output: 1 (true)
