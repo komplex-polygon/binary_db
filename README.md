@@ -1,6 +1,4 @@
-![logo](https://github.com/user-attachments/assets/935bec66-cff7-4bff-baba-248bd506fd41)
-
-<div align="center">
+<div align="left">
     <img src="https://github.com/user-attachments/assets/935bec66-cff7-4bff-baba-248bd506fd41">
 </div>
 
