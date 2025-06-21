@@ -1,5 +1,5 @@
 <div align="left">
-    <img src="https://github.com/user-attachments/assets/935bec66-cff7-4bff-baba-248bd506fd41">
+    <img src="https://github.com/komplex-polygon/binary_db/blob/main/assets/logo.png?raw=true">
 </div>
 
 
